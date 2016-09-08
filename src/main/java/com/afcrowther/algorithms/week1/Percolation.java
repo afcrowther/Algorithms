@@ -1,106 +1,119 @@
 package com.afcrowther.algorithms.week1;
 
-import java.util.function.BiFunction;
-
-import com.afcrowther.algorithms.library.WeightedQuickUnionUF;
+import edu.princeton.cs.algs4.WeightedQuickUnionUF;
 
 /**
- * Model a grid, and provide api to open any point of the grid, and check if the
- * grid percolates.
- * 
+ * Model a grid, and provide api to open any point of the grid, and check if the grid percolates.
  */
 public class Percolation {
 
-	private static final int virtualSites = 2;
+  private static final int VIRTUAL_SITES = 2;
 
-	WeightedQuickUnionUF unionFind;
-	boolean[] siteOpenStatus;
-	int n;
-	int topVirtualSite;
-	int bottomVirtualSite;
-	int size;
+  private WeightedQuickUnionUF unionFind;
+  private WeightedQuickUnionUF unionFindNoBottomVirtualSite;
+  private boolean[] siteOpenStatus;
+  private int n;
+  private int topVirtualSite;
+  private int bottomVirtualSite;
+  private int size;
 
-	public Percolation(int n) throws IllegalArgumentException {
-		if (n <= 0) {
-			throw new IllegalArgumentException();
-		}
-		// index 0 and ${size - 1} will be top and bottom virtual sites
-		// respectively
-		size = n * n + virtualSites;
-		unionFind = new WeightedQuickUnionUF(n * n + virtualSites);
-		this.siteOpenStatus = new boolean[size];
-		this.n = n;
-		this.topVirtualSite = 0;
-		this.bottomVirtualSite = size - 1;
-	}
+  /**
+   * Creates an n*n grid
+   */
+  public Percolation(int n) {
+    if (n <= 0) {
+      throw new IllegalArgumentException();
+    }
+    // index 0 and ${size - 1} will be top and bottom virtual sites
+    // respectively
+    this.size = n * n + VIRTUAL_SITES;
+    this.unionFind = new WeightedQuickUnionUF(size);
+    this.unionFindNoBottomVirtualSite = new WeightedQuickUnionUF(size - 1);
+    this.siteOpenStatus = new boolean[size];
+    this.n = n;
+    this.topVirtualSite = 0;
+    this.bottomVirtualSite = size - 1;
+    this.siteOpenStatus[topVirtualSite] = true;
+    this.siteOpenStatus[bottomVirtualSite] = true;
 
-	public void open(int i, int j) throws IndexOutOfBoundsException {
-		if (i < 1 || i > n || j < 1 || j > n) {
-			throw new IndexOutOfBoundsException();
-		}
+    for (int i = 1; i <= n; i++) {
+      int index = getIndexFromRowAndColumn(1, i);
+      unionFind.union(topVirtualSite, index);
+      unionFindNoBottomVirtualSite.union(topVirtualSite, index);
 
-		if (!isOpen(i, j)) {
-			int index = getIndexFromCoords(i, j);
-			siteOpenStatus[index] = true;
+      index = getIndexFromRowAndColumn(n, i);
+      unionFind.union(bottomVirtualSite, index);
+    }
+  }
 
-			checkSurroundingTiles(i, j);
-		}
-	}
+  /**
+   * Open the site with row i, column j if not already open
+   */
+  public void open(int i, int j) {
+    if (i < 1 || i > n || j < 1 || j > n) {
+      throw new IndexOutOfBoundsException();
+    }
+    int currentSiteIndex = getIndexFromRowAndColumn(i, j);
 
-	public boolean isOpen(int i, int j) throws IndexOutOfBoundsException {
-		if (i < 1 || i > n || j < 1 || j > n) {
-			throw new IndexOutOfBoundsException();
-		}
+    if (!siteOpenStatus[currentSiteIndex]) {
+      siteOpenStatus[currentSiteIndex] = true;
 
-		return siteOpenStatus[getIndexFromCoords(i, j)];
-	}
+      // up
+      if (i > 1 && isOpen(i - 1, j)) {
+        unionFind.union(currentSiteIndex, getIndexFromRowAndColumn(i - 1, j));
+        unionFindNoBottomVirtualSite.union(currentSiteIndex, getIndexFromRowAndColumn(i - 1, j));
+      }
+      // down
+      if (i < n && isOpen(i + 1, j)) {
+        unionFind.union(currentSiteIndex, getIndexFromRowAndColumn(i + 1, j));
+        unionFindNoBottomVirtualSite.union(currentSiteIndex, getIndexFromRowAndColumn(i + 1, j));
+      }
+      // left
+      if (j > 1 && isOpen(i, j - 1)) {
+        unionFind.union(currentSiteIndex, getIndexFromRowAndColumn(i, j - 1));
+        unionFindNoBottomVirtualSite.union(currentSiteIndex, getIndexFromRowAndColumn(i, j - 1));
+      }
+      // right
+      if (j < n && isOpen(i, j + 1)) {
+        unionFind.union(currentSiteIndex, getIndexFromRowAndColumn(i, j + 1));
+        unionFindNoBottomVirtualSite.union(currentSiteIndex, getIndexFromRowAndColumn(i, j + 1));
+      }
+    }
+  }
 
-	public boolean isFull(int i, int j) throws IndexOutOfBoundsException {
-		if (i < 1 || i > n || j < 1 || j > n) {
-			throw new IndexOutOfBoundsException();
-		}
+  /**
+   * Check if site with row i, column j is already open
+   */
+  public boolean isOpen(int i, int j) {
+    if (i < 1 || i > n || j < 1 || j > n) {
+      throw new IndexOutOfBoundsException();
+    }
 
-		return unionFind.connected(topVirtualSite, getIndexFromCoords(i, j));
-	}
+    return siteOpenStatus[getIndexFromRowAndColumn(i, j)];
+  }
 
-	public boolean percolates() {
-		return unionFind.connected(topVirtualSite, bottomVirtualSite);
-	}
+  /**
+   * Check if site with row i, column j is connected to the virtual top site
+   */
+  public boolean isFull(int i, int j) {
+    if (i < 1 || i > n || j < 1 || j > n) {
+      throw new IndexOutOfBoundsException();
+    }
+    int index = getIndexFromRowAndColumn(i, j);
+    return (siteOpenStatus[index] && unionFindNoBottomVirtualSite.connected(topVirtualSite, index));
+  }
 
-	private int getIndexFromCoords(int x, int y) {
-		return (x - 1) * n + y;
-	}
+  /**
+   * Does the grid percolate (top vitrual site connected to bottom virtual site
+   */
+  public boolean percolates() {
+    return n == 1 ? siteOpenStatus[1] : unionFind.connected(topVirtualSite, bottomVirtualSite);
+  }
 
-	private void checkSurroundingTiles(int x, int y) {
-		int currentTileIndex = getIndexFromCoords(x, y);
-		// above
-		if (y == 1) {
-			siteOpenStatus[topVirtualSite] = true;
-			unionFind.union(currentTileIndex, topVirtualSite);
-		} else {
-			doOpenIfOtherTileOpen(currentTileIndex, x, y, (X, Y) -> getIndexFromCoords(X, Y - 1));
-		}
-		// below
-		if (y == n) {
-			siteOpenStatus[bottomVirtualSite] = true;
-			unionFind.union(currentTileIndex, bottomVirtualSite);
-		} else {
-			doOpenIfOtherTileOpen(currentTileIndex, x, y, (X, Y) -> getIndexFromCoords(X, Y + 1));
-		}
-		// left
-		if (x != 1) {
-			doOpenIfOtherTileOpen(currentTileIndex, x, y, (X, Y) -> getIndexFromCoords(X - 1, Y));
-		}
-		// right
-		if (x != n) {
-			doOpenIfOtherTileOpen(currentTileIndex, x, y, (X, Y) -> getIndexFromCoords(X + 1, Y));
-		}
-	}
-
-	private void doOpenIfOtherTileOpen(int tile, int otherTileX, int otherTileY,
-			BiFunction<Integer, Integer, Integer> fn) {
-		int otherTileIndex = fn.apply(otherTileX, otherTileY);
-		if (siteOpenStatus[otherTileIndex])
-			unionFind.union(tile, otherTileIndex);
-	}
+  /**
+   * Get 2d Array Index from given row i, column j
+   */
+  private int getIndexFromRowAndColumn(int i, int j) {
+    return (j - 1) * n + i;
+  }
 }
