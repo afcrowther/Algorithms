@@ -1,3 +1,5 @@
+package com.afcrowther.algorithms.week3;
+
 import java.util.Arrays;
 import java.util.LinkedList;
 

@@ -1,3 +1,5 @@
+package com.afcrowther.algorithms.week3;
+
 import java.util.Comparator;
 
 import edu.princeton.cs.algs4.StdDraw;
