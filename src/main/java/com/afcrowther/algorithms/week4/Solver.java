@@ -1,6 +1,5 @@
 package com.afcrowther.algorithms.week4;
 
-import java.io.File;
 import java.util.LinkedList;
 
 import edu.princeton.cs.algs4.In;
@@ -63,9 +62,8 @@ public class Solver {
     // check if solution is in main queue
     if (solvable) {
       solution = new LinkedList<Board>();
-      solution.add(finalNode.board);
       moves = finalNode.moves;
-      SearchNode previous = finalNode.previous;
+      SearchNode previous = finalNode;
 
       while (previous != null) {
         solution.addFirst(previous.board);
@@ -94,7 +92,6 @@ public class Solver {
       solvable = main;
       finalNode = nextNode;
     }
-
   }
 
   private class SearchNode implements Comparable<SearchNode> {
@@ -125,7 +122,7 @@ public class Solver {
 
   public static void main(String[] args) {
     // create initial board from file
-    In in = new In(new File("/Users/acrowther/Documents/8puzzle/puzzle01.txt"));
+    In in = new In(args[0]);
     int n = in.readInt();
     int[][] blocks = new int[n][n];
     for (int i = 0; i < n; i++)
